@@ -21,6 +21,7 @@
     --accent-soft:#5a2e39;
     --gold:#dba767;
     --line-green:#0f7a3b;
+    --discord-blurple:#5865f2;
     --shadow: 0 18px 44px -22px rgba(0,0,0,0.55);
   }
 
@@ -85,6 +86,12 @@
   .btn:hover{ opacity:.92; }
   .btn:active{ transform:scale(0.98); }
   .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+  .btn.outline{
+    background:transparent; color:var(--accent); border:1.5px solid var(--accent-soft);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-bottom:10px;
+  }
+  .btn.outline svg{ width:16px; height:16px; flex:none; }
   .disclaimer{
     margin-top:22px; font-size:11.5px; color:var(--muted); text-align:center; line-height:1.6;
   }
@@ -183,6 +190,7 @@
   .share-btn svg{ width:17px; height:17px; }
   .share-btn.x{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .share-btn.line{ background:var(--line-green); color:#fff; border-color:var(--line-green); }
+  .share-btn.discord{ background:var(--discord-blurple); color:#fff; border-color:var(--discord-blurple); }
 
   .toast{
     position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(12px);
@@ -284,11 +292,15 @@
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.69 2 10.24c0 4.08 3.59 7.49 8.44 8.13.33.07.78.22.89.5.1.26.07.66.03.92l-.15 1.03c-.04.3-.24 1.17 1.02.64 1.27-.53 6.83-4.02 9.32-6.88 1.72-1.9 2.44-3.83 2.44-5.96C24 5.7 19.52 2 14 2Z"/></svg>
           LINE에서 공유
         </button>
-        <button class="share-btn copy" id="btn-share">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></svg>
-          복사
+        <button class="share-btn discord" id="share-discord">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.028C.533 9.046-.319 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.1.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.076.076 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.548-13.66a.061.061 0 0 0-.031-.028ZM8.02 15.33c-1.182 0-2.157-1.086-2.157-2.42 0-1.333.955-2.418 2.157-2.418 1.211 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.42 0-1.333.955-2.418 2.157-2.418 1.211 0 2.176 1.095 2.157 2.419 0 1.333-.946 2.419-2.157 2.419Z"/></svg>
+          Discord에 공유
         </button>
       </div>
+      <button class="btn outline" id="btn-share">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></svg>
+        링크 공유
+      </button>
 
       <button class="btn" id="btn-retry">다시 진단하기</button>
       <p class="disclaimer">이 결과는 통계적 진단이 아닌 성향 참고용입니다. 관계에서 오는 어려움이 크다면 전문 상담을 권해요.</p>
@@ -589,10 +601,14 @@
     setTimeout(function(){ toast.classList.remove('show'); }, 1600);
   }
 
+  function shareUrl(){
+    return window.location.href;
+  }
+
   document.getElementById('btn-share').addEventListener('click', function(){
-    var text = (window._shareText || '') + ' — 멘헤라 지수 테스트';
+    var text = (window._shareText || '') + ' — 멘헤라 지수 테스트\n' + shareUrl();
     if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(function(){ showToast('결과가 복사됐어요'); })
+      navigator.clipboard.writeText(text).then(function(){ showToast('결과와 링크가 복사됐어요'); })
         .catch(function(){ showToast('복사에 실패했어요'); });
     } else {
       showToast('복사에 실패했어요');
@@ -601,12 +617,30 @@
 
   document.getElementById('share-x').addEventListener('click', function(){
     var text = (window._shareText || '') + ' — 멘헤라 지수 테스트';
-    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank', 'noopener');
+    var params = 'text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(shareUrl());
+    window.open('https://twitter.com/intent/tweet?' + params, '_blank', 'noopener');
   });
 
   document.getElementById('share-line').addEventListener('click', function(){
     var text = (window._shareText || '') + ' — 멘헤라 지수 테스트';
-    window.open('https://social-plugins.line.me/lineit/share?text=' + encodeURIComponent(text), '_blank', 'noopener');
+    var params = 'url=' + encodeURIComponent(shareUrl()) + '&text=' + encodeURIComponent(text);
+    window.open('https://social-plugins.line.me/lineit/share?' + params, '_blank', 'noopener');
+  });
+
+  document.getElementById('share-discord').addEventListener('click', function(){
+    // 디스코드는 공개 공유 URL 스킴이 없어서, 결과 텍스트+링크를 복사해두고 디스코드를 열어 붙여넣게 안내한다
+    var text = (window._shareText || '') + ' — 멘헤라 지수 테스트\n' + shareUrl();
+    function openDiscord(msg){
+      showToast(msg);
+      window.open('https://discord.com/channels/@me', '_blank', 'noopener');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text)
+        .then(function(){ openDiscord('복사됐어요! 디스코드에 붙여넣기 하세요'); })
+        .catch(function(){ openDiscord('디스코드를 열었어요'); });
+    } else {
+      openDiscord('디스코드를 열었어요');
+    }
   });
 })();
 </script>
