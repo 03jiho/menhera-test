@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>멘헤라 지수</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  /* 다크/라이트 모드와 무관하게 항상 이 다크 로즈 테마 하나만 보여주도록 고정 */
+  :root{
+    --bg:#1a1013;
+    --surface:#251720;
+    --surface-2:#2c1b26;
+    --ink:#f4e7ea;
+    --muted:#c1a0a8;
+    --border:#3c2530;
+    --accent:#e07189;
+    --accent-btn:#9c2f45;
+    --accent-soft:#5a2e39;
+    --gold:#dba767;
+    --line-green:#0f7a3b;
+    --shadow: 0 18px 44px -22px rgba(0,0,0,0.55);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 600px at 50% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Gowun Dodum','Malgun Gothic',sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:48px 16px 64px;
+    min-height:100dvh;
+  }
+  h1,h2,h3{ font-family:'Gowun Batang',serif; text-wrap:balance; margin:0; }
+
+  .stage{ width:100%; max-width:440px; }
+
+  .masthead{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding-bottom:16px; margin-bottom:18px;
+    border-bottom:1px solid var(--border);
+  }
+  .masthead .glyph{ width:16px; height:16px; flex:none; }
+  .masthead .glyph path{ fill:none; stroke:var(--accent); stroke-width:8; }
+  .masthead span{ font-family:'Gowun Batang',serif; font-size:16px; letter-spacing:.02em; }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    padding:32px 28px 28px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* heart glyph used on intro */
+  .heart-wrap{ display:flex; justify-content:center; margin:6px 0 18px; }
+  .heart-wrap svg{ width:76px; height:68px; overflow:visible; }
+  .heart-track{ fill:none; stroke:var(--accent-soft); stroke-width:6; }
+  .heart-crack{ stroke:var(--surface); stroke-width:2.5; fill:none; opacity:.9; }
+
+  .title{ font-size:32px; text-align:center; line-height:1.3; margin-bottom:12px; }
+  .lede{ font-size:14.5px; color:var(--muted); text-align:center; line-height:1.7; margin-bottom:26px; }
+
+  .meta-row{
+    display:flex; justify-content:center; gap:18px;
+    font-size:12.5px; color:var(--muted); margin-bottom:24px;
+  }
+  .meta-row b{ color:var(--ink); font-weight:400; font-family:'Gowun Batang',serif; }
+
+  .btn{
+    width:100%; border:none; cursor:pointer;
+    font-family:'Gowun Dodum',sans-serif; font-size:15.5px;
+    padding:15px 20px; border-radius:999px;
+    background:var(--accent-btn); color:#fff;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn:hover{ opacity:.92; }
+  .btn:active{ transform:scale(0.98); }
+  .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+  .disclaimer{
+    margin-top:22px; font-size:11.5px; color:var(--muted); text-align:center; line-height:1.6;
+  }
+
+  /* quiz screen */
+  .progress-row{
+    display:flex; align-items:center; gap:12px; margin-bottom:22px;
+  }
+  .progress-track{
+    flex:1; height:4px; background:var(--surface-2); border-radius:2px; overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; background:var(--accent); border-radius:2px; transition:width .35s ease;
+  }
+  .progress-count{
+    font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+
+  .axis-tag{
+    display:inline-block; font-size:11.5px; letter-spacing:.08em; color:var(--accent);
+    background:var(--surface-2); border:1px solid var(--border);
+    padding:4px 10px; border-radius:999px; margin-bottom:14px;
+  }
+
+  .q-text{ font-size:19px; line-height:1.5; margin-bottom:22px; min-height:56px; }
+
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .option{
+    display:flex; align-items:flex-start; gap:10px;
+    text-align:left; width:100%;
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:12px; padding:13px 14px;
+    font-family:'Gowun Dodum',sans-serif; font-size:14.5px; color:var(--ink);
+    cursor:pointer; transition:border-color .15s ease, background .15s ease;
+  }
+  .option:hover{ border-color:var(--accent-soft); background:var(--surface); }
+  .option:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .option .mark{
+    flex:none; font-family:'Gowun Batang',serif; color:var(--muted); font-size:13px; padding-top:1px;
+  }
+
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px; margin-top:20px;
+    font-size:12.5px; color:var(--muted); background:none; border:none; cursor:pointer;
+    font-family:'Gowun Dodum',sans-serif;
+  }
+  .back-link:hover{ color:var(--accent); }
+
+  /* result screen */
+  .score-box{
+    background:color-mix(in srgb, var(--accent) 14%, var(--surface));
+    border-radius:18px; padding:28px 20px 24px; text-align:center; margin-bottom:22px;
+  }
+  .score-label{ font-size:12.5px; color:var(--muted); margin-bottom:10px; }
+  .score-value{
+    font-family:'Gowun Batang',serif; font-size:46px; color:var(--accent);
+    font-variant-numeric:tabular-nums; line-height:1;
+  }
+  .score-value span{ font-size:20px; margin-left:2px; }
+  .score-tier{ font-size:21px; margin:10px 0 2px; }
+  .score-type{ font-size:13px; color:var(--accent); }
+
+  .axes{ display:flex; flex-direction:column; gap:16px; margin-bottom:28px; }
+  .axis-row .axis-top{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:13.5px; margin-bottom:7px;
+  }
+  .axis-row .axis-top .pct{ font-variant-numeric:tabular-nums; font-size:14px; }
+  .axis-track{ height:9px; background:var(--surface-2); border-radius:5px; overflow:hidden; }
+  .axis-fill{ height:100%; background:var(--accent); border-radius:5px; transition:width .6s ease; }
+
+  .section-lead{ font-size:12.5px; color:var(--muted); margin-bottom:8px; }
+  .type-name-row{ display:flex; align-items:baseline; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .type-name-row .k{ font-size:14.5px; color:var(--ink); }
+  .type-name-row .v{
+    font-family:'Gowun Batang',serif; font-size:19px; color:var(--accent);
+    text-decoration:underline; text-decoration-color:var(--accent-soft); text-underline-offset:4px;
+  }
+  .flow-text{ font-size:14px; line-height:1.85; color:var(--ink); margin:0 0 14px; }
+
+  .tip-box{ border-radius:14px; padding:16px 16px; font-size:13px; line-height:1.75; margin-bottom:22px; }
+  .tip-box.pink{ background:color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .tip-box.gold{ background:color-mix(in srgb, var(--gold) 16%, var(--surface)); }
+  .tip-box b{ font-family:'Gowun Batang',serif; font-weight:400; color:var(--accent); }
+  .tip-box.gold b{ color:var(--gold); }
+
+  .share-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .share-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:12px 6px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink); cursor:pointer;
+    font-family:'Gowun Dodum',sans-serif; font-size:11.5px;
+    transition:opacity .15s ease;
+  }
+  .share-btn:hover{ opacity:.85; }
+  .share-btn svg{ width:17px; height:17px; }
+  .share-btn.x{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .share-btn.line{ background:var(--line-green); color:#fff; border-color:var(--line-green); }
+
+  .toast{
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(12px);
+    background:var(--ink); color:var(--bg); font-size:13px;
+    padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  [hidden]{ display:none !important; }
+
+  @media (max-width:380px){
+    body{ padding:32px 10px 48px; }
+    .card{ padding:24px 18px 20px; border-radius:18px; }
+    .title{ font-size:26px; }
+    .score-value{ font-size:38px; }
+    .share-row{ gap:6px; }
+    .share-btn{ font-size:10.5px; padding:10px 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="masthead">
+    <svg class="glyph" viewBox="0 0 100 90"><path d="M50 82 C 14 58, 2 34, 22 18 C 36 6, 50 16, 50 28 C 50 16, 64 6, 78 18 C 98 34, 86 58, 50 82 Z"/></svg>
+    <span>멘헤라 지수</span>
+  </div>
+  <div class="card">
+
+    <!-- INTRO -->
+    <section id="screen-intro">
+      <div class="heart-wrap">
+        <svg viewBox="0 0 100 90">
+          <path class="heart-track" d="M50 82 C 14 58, 2 34, 22 18 C 36 6, 50 16, 50 28 C 50 16, 64 6, 78 18 C 98 34, 86 58, 50 82 Z"/>
+          <path class="heart-crack" d="M50 24 L46 38 L54 46 L44 58 L52 70"/>
+        </svg>
+      </div>
+      <h1 class="title">멘헤라 테스트</h1>
+      <p class="lede">나의 연애, 얼마나 위태로울까?<br>16개의 장면으로 가늠해봅니다.</p>
+      <div class="meta-row">
+        <span><b>16</b>문항</span>
+        <span><b>4</b>가지 축</span>
+        <span><b>약 3</b>분</span>
+      </div>
+      <button class="btn" id="btn-start">시작하기</button>
+      <p class="disclaimer">재미로 보는 자가진단 테스트이며, 의학적·심리학적 진단을 대신하지 않아요.</p>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="screen-quiz" hidden>
+      <div class="progress-row">
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-count" id="progress-count">1 / 16</div>
+      </div>
+      <span class="axis-tag" id="axis-tag">의존도</span>
+      <p class="q-text" id="q-text"></p>
+      <div class="options" id="q-options"></div>
+      <button class="back-link" id="btn-back" hidden>← 이전 문항</button>
+    </section>
+
+    <!-- RESULT -->
+    <section id="screen-result" hidden>
+
+      <div class="score-box">
+        <div class="score-label">당신의 멘헤라 정도는…</div>
+        <div class="score-value"><span id="score-num">0</span><span>%</span></div>
+        <div class="score-tier" id="tier-name"></div>
+        <div class="score-type" id="score-type"></div>
+      </div>
+
+      <div class="axes" id="axes-wrap"></div>
+
+      <p class="section-lead" id="type-lead"></p>
+      <div class="type-name-row">
+        <span class="k">당신의 형</span>
+        <span class="v" id="type-name"></span>
+      </div>
+      <p class="flow-text" id="type-desc"></p>
+      <div class="tip-box pink">
+        <b>사귀는 방법의 요령:</b> <span id="type-tip"></span>
+      </div>
+
+      <p class="flow-text" id="tier-desc"></p>
+      <div class="tip-box gold">
+        <b>원포인트:</b> <span id="tier-tip"></span>
+      </div>
+
+      <div class="share-row">
+        <button class="share-btn x" id="share-x">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-7l-5.5-7.2L4.5 22H1.4l8.2-9.4L1 2h7.2l5 6.6L18.9 2Zm-1.2 18h1.7L7.4 4H5.6l12.1 16Z"/></svg>
+          X에서 공유
+        </button>
+        <button class="share-btn line" id="share-line">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.69 2 10.24c0 4.08 3.59 7.49 8.44 8.13.33.07.78.22.89.5.1.26.07.66.03.92l-.15 1.03c-.04.3-.24 1.17 1.02.64 1.27-.53 6.83-4.02 9.32-6.88 1.72-1.9 2.44-3.83 2.44-5.96C24 5.7 19.52 2 14 2Z"/></svg>
+          LINE에서 공유
+        </button>
+        <button class="share-btn copy" id="btn-share">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></svg>
+          복사
+        </button>
+      </div>
+
+      <button class="btn" id="btn-retry">다시 진단하기</button>
+      <p class="disclaimer">이 결과는 통계적 진단이 아닌 성향 참고용입니다. 관계에서 오는 어려움이 크다면 전문 상담을 권해요.</p>
+    </section>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">결과가 복사됐어요</div>
+
+<script>
+(function(){
+  var AXES = [
+    { key:'dependency', label:'의존도' },
+    { key:'possessive', label:'집착도' },
+    { key:'mood',       label:'감정기복' },
+    { key:'attention',  label:'관심욕구' }
+  ];
+
+  var QUESTIONS = [
+    { axis:'dependency', text:'연락이 30분만 늦어도 드는 생각은?', options:[
+      {t:'바쁜가 보다 하고 넘긴다', s:0},
+      {t:'살짝 신경이 쓰이긴 한다', s:1},
+      {t:'무슨 일 생긴 건 아닌지 계속 확인한다', s:2},
+      {t:'나한테 질린 건 아닐까 손이 떨린다', s:3}
+    ]},
+    { axis:'dependency', text:'상대방이 "오늘은 혼자 있고 싶어"라고 하면?', options:[
+      {t:'그래, 푹 쉬라고 한다', s:0},
+      {t:'조금 서운하지만 이해한다', s:1},
+      {t:'내가 뭘 잘못했는지 되짚어본다', s:2},
+      {t:'걱정돼서 계속 연락하게 된다', s:3}
+    ]},
+    { axis:'dependency', text:'약속 없이 혼자 보내는 하루가 생기면?', options:[
+      {t:'밀린 할 일도 하고 알차게 잘 보낸다', s:0},
+      {t:'살짝 심심하지만 나름 잘 지낸다', s:1},
+      {t:'뭘 해도 집중이 안 되고 자꾸 연락하고 싶어진다', s:2},
+      {t:'그 사람 없인 하루가 텅 빈 것 같다', s:3}
+    ]},
+    { axis:'dependency', text:'둘이 있을 때 가장 편안한 순간은?', options:[
+      {t:'각자 할 일 하며 같은 공간에 있을 때', s:0},
+      {t:'이런저런 대화를 주고받을 때', s:1},
+      {t:'손을 잡거나 붙어 있을 때', s:2},
+      {t:'상대가 온전히 나만 바라볼 때', s:3}
+    ]},
+
+    { axis:'possessive', text:'상대 휴대폰 화면이 잠깐 눈에 들어오면?', options:[
+      {t:'딱히 신경 쓰지 않는다', s:0},
+      {t:'무슨 앱인지 정도만 스친다', s:1},
+      {t:'누구와 대화 중인지 궁금해진다', s:2},
+      {t:'나도 모르게 내용을 읽고 있다', s:3}
+    ]},
+    { axis:'possessive', text:'상대가 이성 친구와 약속이 있다고 하면?', options:[
+      {t:'재밌게 놀다 오라고 한다', s:0},
+      {t:'몇 시에 끝나는지 물어본다', s:1},
+      {t:'누구누구 오는지 다 확인한다', s:2},
+      {t:'약속을 조용히 미루게 만들고 싶어진다', s:3}
+    ]},
+    { axis:'possessive', text:'상대 SNS에서 낯선 사람이 남긴 댓글을 보면?', options:[
+      {t:'아무 감정도 안 든다', s:0},
+      {t:'살짝 눈이 간다', s:1},
+      {t:'캡처해서 물어본다', s:2},
+      {t:'그 사람 계정까지 들어가 확인한다', s:3}
+    ]},
+    { axis:'possessive', text:'둘만의 규칙(남사친·여사친 연락, 서로의 연락 빈도 등)에 대한 생각은?', options:[
+      {t:'굳이 정할 필요는 없다고 본다', s:0},
+      {t:'최소한의 배려로 몇 가지 있으면 좋다', s:1},
+      {t:'세세하게 정해서 지켰으면 한다', s:2},
+      {t:'정한 걸 안 지키면 불안해서 견디기 힘들다', s:3}
+    ]},
+
+    { axis:'mood', text:'사소한 다툼 후 감정 상태는?', options:[
+      {t:'금방 털어내고 평소대로 돌아간다', s:0},
+      {t:'몇 시간 정도는 마음이 무겁다', s:1},
+      {t:'하루 종일 그 생각만 난다', s:2},
+      {t:'이별 같은 극단적인 생각까지 스친다', s:3}
+    ]},
+    { axis:'mood', text:'기분이 좋을 때와 안 좋을 때, 나의 온도차는?', options:[
+      {t:'크게 티가 안 나는 편이다', s:0},
+      {t:'가까운 사람은 눈치챌 정도', s:1},
+      {t:'목소리 톤과 말투부터 확 달라진다', s:2},
+      {t:'몇 시간 전과 딴사람 같다는 말을 듣는다', s:3}
+    ]},
+    { axis:'mood', text:'답장이 평소보다 단답으로 오면?', options:[
+      {t:'그런가 보다 한다', s:0},
+      {t:'오늘 좀 피곤한가 싶다', s:1},
+      {t:'내가 뭘 잘못했나 계속 생각한다', s:2},
+      {t:'마음이 식은 건 아닐까 눈물이 난다', s:3}
+    ]},
+    { axis:'mood', text:'좋아하는 사람이 생기면 나타나는 변화는?', options:[
+      {t:'별로 없다, 평소와 비슷하다', s:0},
+      {t:'그 사람 생각을 좀 더 자주 한다', s:1},
+      {t:'하루 컨디션이 그 사람 반응에 좌우된다', s:2},
+      {t:'먹고 자는 것까지 그 사람 위주로 바뀐다', s:3}
+    ]},
+
+    { axis:'attention', text:'연인이 며칠째 칭찬을 안 해주면?', options:[
+      {t:'딱히 신경 쓰지 않는다', s:0},
+      {t:'넌지시 예쁘냐고 물어본다', s:1},
+      {t:'서운한 티를 낸다', s:2},
+      {t:'일부러 시무룩한 모습을 보여서 알아채게 한다', s:3}
+    ]},
+    { axis:'attention', text:'SNS에 커플 사진을 올리는 이유는?', options:[
+      {t:'기록 삼아 가끔 올린다', s:0},
+      {t:'예쁜 순간이라 남기고 싶어서', s:1},
+      {t:'사람들이 부러워했으면 해서', s:2},
+      {t:'사랑받고 있다는 걸 확인받고 싶어서', s:3}
+    ]},
+    { axis:'attention', text:'힘든 일이 있을 때 나의 행동은?', options:[
+      {t:'혼자 정리하고 필요하면 말한다', s:0},
+      {t:'가까운 사람에게 살짝 털어놓는다', s:1},
+      {t:'SNS에 의미심장한 글을 올린다', s:2},
+      {t:'상대가 먼저 알아채고 달래주길 바라며 티를 낸다', s:3}
+    ]},
+    { axis:'attention', text:'다투고 난 뒤, 화해는 보통 누가 먼저?', options:[
+      {t:'시간을 두고 자연스럽게 이야기한다', s:0},
+      {t:'내가 먼저 연락해서 푼다', s:1},
+      {t:'상대가 먼저 연락할 때까지 기다린다', s:2},
+      {t:'상대가 충분히 애타야 연락을 받아준다', s:3}
+    ]}
+  ];
+
+  var TIERS = [
+    { max:20, name:'가벼운 멘헤라',
+      desc:'관계에서 오는 불안이 크지 않고, 혼자만의 시간도 온전히 즐길 줄 아는 편이에요.',
+      tip:'지금의 여유를 유지하면서, 가끔은 서운한 마음도 솔직하게 표현해보세요.' },
+    { max:40, name:'약한 멘헤라',
+      desc:'좋아하는 마음은 분명하지만 감정에 쉽게 휘둘리지 않고 스스로 다독일 줄 아는 편이에요.',
+      tip:'지금처럼 감정을 스스로 잘 다독이는 습관을 유지하면 관계가 오래갑니다.' },
+    { max:60, name:'보통 멘헤라',
+      desc:'평소엔 담담하다가도 특정 상황에서는 마음이 훅 기울어지는 편. 스스로도 예측이 잘 안 될 때가 있어요.',
+      tip:'마음이 훅 기울어질 땐, 그 감정을 상대에게 바로 쏟기 전에 한 박자 쉬어가 보세요.' },
+    { max:80, name:'무거운 멘헤라',
+      desc:'좋아하는 마음이 클수록 불안도 함께 커지는 편이에요. 관계에 마음을 많이 쏟는 만큼, 스스로를 다독이는 시간도 필요해요.',
+      tip:'연인 이외의 \'자신만의 세계\'를 하나 늘리면 훨씬 안정됩니다.' },
+    { max:101, name:'심각한 멘헤라',
+      desc:'사랑이 시작되면 일상 전체가 그 사람 중심으로 재편되는 편. 마음이 크다는 증거지만, 나를 지키는 최소한의 영역은 남겨두는 게 좋아요.',
+      tip:'혼자 견디기보다 믿을 수 있는 사람이나 전문가와 이 감정을 나눠보는 것도 방법이에요.' }
+  ];
+
+  // 상위 두 축의 조합(알파벳순 키)으로 정해지는 6가지 유형 — 이름만 보고도 어떤 성향인지 바로 감이 오도록 지음
+  var TYPES = {
+    'dependency+possessive': { name:'독점형',
+      desc:'상대를 독점하고 싶은 마음이 큰 타입. 이어져 있다는 확신이 있어야 안심하고, 그 확신을 지키려고 상대의 일상까지 파악해두고 싶어져요.',
+      tip:'만날 수 없는 시간에 스스로 할 일을 먼저 정해두면, 확인하고 싶은 충동이 자연히 줄어들어요.' },
+    'dependency+mood': { name:'롤러코스터형',
+      desc:'곁에 있을 땐 넘치도록 안정되지만, 혼자가 되는 순간 감정이 빠르게 바닥을 쳐요. 연락 하나에 하루 기분이 오르내리기 쉬운 조합이에요.',
+      tip:'혼자 있는 시간에도 몰입할 수 있는 루틴을 하나 정해두면 기분의 낙차가 줄어들어요.' },
+    'attention+dependency': { name:'확인형',
+      desc:'사랑받고 있다는 걸 자꾸 확인받아야 안심하는 타입. 상대가 늘 곁에서 다정한 신호를 줘야 마음이 놓이는 편이에요.',
+      tip:'스스로에게 먼저 다정한 말을 건네는 연습을 해보면, 상대에게 기대는 무게가 조금 가벼워져요.' },
+    'mood+possessive': { name:'폭풍형',
+      desc:'정서의 기복이 클수록 그 파장을 그대로 관계에 쏟고, 동시에 상대의 일거수일투족까지 신경 쓰게 되는 조합이에요.',
+      tip:'감정이 요동칠수록 확인 대신 "지금 좀 불안해"라고 짧게 말해보세요.' },
+    'attention+possessive': { name:'경계형',
+      desc:'상대 주변을 늘 경계하는 타입. 지키고 싶은 마음과 사랑받고 싶은 마음이 함께 커서, 관심이 줄어드는 낌새만 보여도 상대의 반경을 좁히게 돼요.',
+      tip:'서운함은 티 대신 말로, 궁금함은 추측 대신 질문으로 바꿔보세요.' },
+    'attention+mood': { name:'불꽃형',
+      desc:'감정이 흔들릴 때마다 확 티가 나는 타입. 그 마음을 상대가 알아채고 달래주길 바라며, 사랑받고 있다는 확인이 파도를 가라앉히는 유일한 방법이 되곤 해요.',
+      tip:'"오늘 좀 서운했어"처럼 감정을 먼저 언어로 꺼내보면, 파도가 훨씬 빨리 가라앉아요.' }
+  };
+
+  var idx = 0;
+  var scores = {};
+  var picked = [];
+
+  var elIntro = document.getElementById('screen-intro');
+  var elQuiz = document.getElementById('screen-quiz');
+  var elResult = document.getElementById('screen-result');
+
+  function josaWaGwa(word){
+    var code = word.charCodeAt(word.length - 1) - 0xAC00;
+    if (code < 0 || code > 11171) return '와';
+    return (code % 28 === 0) ? '와' : '과';
+  }
+
+  function shuffle(arr){
+    for (var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function startQuiz(){
+    idx = 0;
+    picked = new Array(QUESTIONS.length).fill(null);
+    AXES.forEach(function(a){ scores[a.key] = 0; });
+    elIntro.hidden = true;
+    elResult.hidden = true;
+    elQuiz.hidden = false;
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    var q = QUESTIONS[idx];
+    var axisInfo = AXES.filter(function(a){ return a.key === q.axis; })[0];
+    document.getElementById('axis-tag').textContent = axisInfo.label;
+    document.getElementById('q-text').textContent = q.text;
+    document.getElementById('progress-count').textContent = (idx + 1) + ' / ' + QUESTIONS.length;
+    document.getElementById('progress-fill').style.width = (idx / QUESTIONS.length * 100) + '%';
+    document.getElementById('btn-back').hidden = idx === 0;
+
+    var opts = q.options.map(function(o, i){ return { t:o.t, s:o.s, i:i }; });
+    if (picked[idx] === null) shuffle(opts);
+    else {
+      var savedOrder = picked[idx].order;
+      opts = savedOrder.map(function(i){ return { t:q.options[i].t, s:q.options[i].s, i:i }; });
+    }
+
+    var marks = ['①','②','③','④'];
+    var wrap = document.getElementById('q-options');
+    wrap.innerHTML = '';
+    opts.forEach(function(o, pos){
+      var btn = document.createElement('button');
+      btn.className = 'option';
+      btn.innerHTML = '<span class="mark">' + marks[pos] + '</span><span>' + o.t + '</span>';
+      btn.addEventListener('click', function(){
+        picked[idx] = { score:o.s, order:opts.map(function(x){ return x.i; }) };
+        if (idx < QUESTIONS.length - 1){
+          idx++;
+          renderQuestion();
+        } else {
+          finish();
+        }
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  document.getElementById('btn-back').addEventListener('click', function(){
+    if (idx > 0){ idx--; renderQuestion(); }
+  });
+
+  function finish(){
+    AXES.forEach(function(a){ scores[a.key] = 0; });
+    QUESTIONS.forEach(function(q, i){
+      scores[q.axis] += picked[i].score;
+    });
+    var total = 0;
+    AXES.forEach(function(a){ total += scores[a.key]; });
+    var totalPct = Math.round(total / (QUESTIONS.length * 3) * 100);
+
+    var tier = TIERS.filter(function(t){ return totalPct <= t.max; })[0];
+
+    var ranked = AXES.map(function(a, i){
+      var axisMax = QUESTIONS.filter(function(q){ return q.axis === a.key; }).length * 3;
+      return { key:a.key, label:a.label, pct:scores[a.key] / axisMax * 100, order:i };
+    }).sort(function(a, b){
+      return b.pct - a.pct || a.order - b.order;
+    });
+
+    renderResult(totalPct, tier, ranked);
+  }
+
+  function renderResult(totalPct, tier, ranked){
+    elQuiz.hidden = true;
+    elResult.hidden = false;
+
+    var pairKey = [ranked[0].key, ranked[1].key].sort().join('+');
+    var type = TYPES[pairKey];
+
+    document.getElementById('score-num').textContent = totalPct;
+    document.getElementById('tier-name').textContent = tier.name;
+    document.getElementById('score-type').textContent = type.name;
+
+    var axesWrap = document.getElementById('axes-wrap');
+    axesWrap.innerHTML = '';
+    AXES.forEach(function(a){
+      var found = ranked.filter(function(r){ return r.key === a.key; })[0];
+      var pct = Math.round(found.pct);
+      var row = document.createElement('div');
+      row.className = 'axis-row';
+      row.innerHTML =
+        '<div class="axis-top"><span>' + a.label + '</span><span class="pct">' + pct + '%</span></div>' +
+        '<div class="axis-track"><div class="axis-fill" style="width:' + pct + '%"></div></div>';
+      axesWrap.appendChild(row);
+    });
+
+    document.getElementById('type-lead').textContent =
+      '특히 높은 것은 \'' + ranked[0].label + '\'' + josaWaGwa(ranked[0].label) + ' \'' + ranked[1].label + '\'예요.';
+    document.getElementById('type-name').textContent = type.name;
+    document.getElementById('type-desc').textContent = type.desc;
+    document.getElementById('type-tip').textContent = type.tip;
+
+    document.getElementById('tier-desc').textContent = tier.desc;
+    document.getElementById('tier-tip').textContent = tier.tip;
+
+    window._shareText = '나의 멘헤라 지수는 ' + totalPct + '%, ' + tier.name + ' (' + type.name + ')';
+  }
+
+  document.getElementById('btn-start').addEventListener('click', startQuiz);
+  document.getElementById('btn-retry').addEventListener('click', startQuiz);
+
+  function showToast(msg){
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function(){ toast.classList.remove('show'); }, 1600);
+  }
+
+  document.getElementById('btn-share').addEventListener('click', function(){
+    var text = (window._shareText || '') + ' — 멘헤라 지수 테스트';
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ showToast('결과가 복사됐어요'); })
+        .catch(function(){ showToast('복사에 실패했어요'); });
+    } else {
+      showToast('복사에 실패했어요');
+    }
+  });
+
+  document.getElementById('share-x').addEventListener('click', function(){
+    var text = (window._shareText || '') + ' — 멘헤라 지수 테스트';
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank', 'noopener');
+  });
+
+  document.getElementById('share-line').addEventListener('click', function(){
+    var text = (window._shareText || '') + ' — 멘헤라 지수 테스트';
+    window.open('https://social-plugins.line.me/lineit/share?text=' + encodeURIComponent(text), '_blank', 'noopener');
+  });
+})();
+</script>
+</body>
+</html>
