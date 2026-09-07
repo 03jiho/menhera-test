@@ -463,10 +463,40 @@
   var idx = 0;
   var scores = {};
   var picked = [];
+  var answeredScores = null; // flat per-question score array, set on finish() or on loading a shared link
 
   var elIntro = document.getElementById('screen-intro');
   var elQuiz = document.getElementById('screen-quiz');
   var elResult = document.getElementById('screen-result');
+
+  // 결과를 ?a=<code>로 URL에 압축 저장/복원하기 위한 인코딩(문항당 2비트 점수 0~3)
+  function encodeScores(scoresArr){
+    var bytes = new Uint8Array(Math.ceil(scoresArr.length * 2 / 8));
+    scoresArr.forEach(function(s, i){
+      var bitPos = i * 2, byteIndex = bitPos >> 3, bitOffset = bitPos & 7;
+      bytes[byteIndex] |= (s & 3) << bitOffset;
+    });
+    var binStr = '';
+    for (var i = 0; i < bytes.length; i++) binStr += String.fromCharCode(bytes[i]);
+    return btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function decodeScores(str){
+    try{
+      var s = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      var binStr = atob(s);
+      var bytes = [];
+      for (var i = 0; i < binStr.length; i++) bytes.push(binStr.charCodeAt(i));
+      var out = [];
+      for (var q = 0; q < QUESTIONS.length; q++){
+        var bitPos = q * 2, byteIndex = bitPos >> 3, bitOffset = bitPos & 7;
+        if (byteIndex >= bytes.length) return null;
+        out.push((bytes[byteIndex] >> bitOffset) & 3);
+      }
+      return out;
+    } catch(e){ return null; }
+  }
 
   function josaWaGwa(word){
     var code = word.charCodeAt(word.length - 1) - 0xAC00;
@@ -533,9 +563,15 @@
   });
 
   function finish(){
+    var scoresArr = picked.map(function(p){ return p.score; });
+    answeredScores = scoresArr;
+    computeAndRender(scoresArr);
+  }
+
+  function computeAndRender(scoresArr){
     AXES.forEach(function(a){ scores[a.key] = 0; });
     QUESTIONS.forEach(function(q, i){
-      scores[q.axis] += picked[i].score;
+      scores[q.axis] += scoresArr[i];
     });
     var total = 0;
     AXES.forEach(function(a){ total += scores[a.key]; });
@@ -590,7 +626,11 @@
   }
 
   document.getElementById('btn-start').addEventListener('click', startQuiz);
-  document.getElementById('btn-retry').addEventListener('click', startQuiz);
+  document.getElementById('btn-retry').addEventListener('click', function(){
+    answeredScores = null;
+    try{ window.history.replaceState(null, '', window.location.pathname); }catch(e){}
+    startQuiz();
+  });
 
   function showToast(msg){
     var toast = document.getElementById('toast');
@@ -600,8 +640,28 @@
   }
 
   function shareUrl(){
-    return window.location.href;
+    try{
+      var url = new URL(window.location.href);
+      url.search = '';
+      url.hash = '';
+      if (answeredScores) url.searchParams.set('a', encodeScores(answeredScores));
+      return url.toString();
+    } catch(e){ return window.location.href; }
   }
+
+  // 공유 링크(?a=...)로 들어온 경우, 퀴즈를 건너뛰고 바로 결과 화면을 복원한다
+  (function initFromUrl(){
+    try{
+      var params = new URLSearchParams(window.location.search);
+      var a = params.get('a');
+      if (!a) return;
+      var scoresArr = decodeScores(a);
+      if (!scoresArr) return;
+      answeredScores = scoresArr;
+      elIntro.hidden = true;
+      computeAndRender(scoresArr);
+    } catch(e){}
+  })();
 
   document.getElementById('btn-share').addEventListener('click', function(){
     var text = (window._shareText || '') + ' — 멘헤라 지수 테스트\n' + shareUrl();
