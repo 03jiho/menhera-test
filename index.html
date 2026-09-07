@@ -463,14 +463,16 @@
   var idx = 0;
   var scores = {};
   var picked = [];
-  var currentTypeSlug = null; // set once a result is on screen, used to build the clean share link
+  var currentTypeSlug = null;   // 사람이 읽는 유형 이름 접두어 (예: possessive)
+  var currentScoresArr = null;  // 정확한 재현을 위한 실제 16문항 점수
 
   var elIntro = document.getElementById('screen-intro');
   var elQuiz = document.getElementById('screen-quiz');
   var elResult = document.getElementById('screen-result');
 
-  // 결과 화면 대신 "당신의 형"(TYPES) 하나만 짧은 슬러그로 표현해
-  // 공유 링크를 .../menhera-test/possessive 처럼 단순하게 만든다.
+  // 공유 링크는 .../menhera-test/possessive.SPWBQQ 형태로 만든다.
+  // 앞부분(유형 이름)은 가독성을 위한 장식이고, "." 뒤의 코드가 실제 16문항
+  // 점수를 정확히 담고 있어 그 사람의 결과를 그대로 재현한다.
   var SLUG_TO_PAIR = {
     possessive: 'dependency+possessive',
     rollercoaster: 'dependency+mood',
@@ -482,24 +484,63 @@
   var PAIR_TO_SLUG = {};
   Object.keys(SLUG_TO_PAIR).forEach(function(slug){ PAIR_TO_SLUG[SLUG_TO_PAIR[slug]] = slug; });
 
-  function getSlugFromPath(){
-    var segs = window.location.pathname.split('/').filter(function(s){ return s.length > 0; });
-    var last = segs[segs.length - 1];
-    return (last && last !== 'index.html') ? last : null;
+  function isResultSegment(seg){
+    return !!seg && (seg === 'index.html' || seg.indexOf('.') !== -1 || SLUG_TO_PAIR.hasOwnProperty(seg));
   }
 
   function getBasePath(){
     var segs = window.location.pathname.split('/').filter(function(s){ return s.length > 0; });
     var last = segs[segs.length - 1];
-    if (last === 'index.html' || SLUG_TO_PAIR.hasOwnProperty(last)) segs.pop();
+    if (isResultSegment(last)) segs.pop();
     return '/' + segs.join('/') + (segs.length ? '/' : '');
   }
 
-  // 두 대표 축만 최고점(3)으로 채운 가상 답변을 만들어, 실제 채점 로직을 그대로
-  // 재사용해 그 유형의 대표 결과 화면을 재현한다
+  // 두 대표 축만 최고점(3)으로 채운 가상 답변 — 이전 형태(슬러그만 있는 링크)로
+  // 들어왔을 때를 위한 하위호환 대체값
   function scoresForPair(pairKey){
     var axesInPair = pairKey.split('+');
     return QUESTIONS.map(function(q){ return axesInPair.indexOf(q.axis) !== -1 ? 3 : 0; });
+  }
+
+  // 결과를 .../<slug>.<code> 경로로 압축 저장/복원하기 위한 인코딩(문항당 2비트 점수 0~3)
+  function encodeScores(scoresArr){
+    var bytes = new Uint8Array(Math.ceil(scoresArr.length * 2 / 8));
+    scoresArr.forEach(function(s, i){
+      var bitPos = i * 2, byteIndex = bitPos >> 3, bitOffset = bitPos & 7;
+      bytes[byteIndex] |= (s & 3) << bitOffset;
+    });
+    var binStr = '';
+    for (var i = 0; i < bytes.length; i++) binStr += String.fromCharCode(bytes[i]);
+    return btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function decodeScores(str){
+    try{
+      var s = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      var binStr = atob(s);
+      var bytes = [];
+      for (var i = 0; i < binStr.length; i++) bytes.push(binStr.charCodeAt(i));
+      var out = [];
+      for (var q = 0; q < QUESTIONS.length; q++){
+        var bitPos = q * 2, byteIndex = bitPos >> 3, bitOffset = bitPos & 7;
+        if (byteIndex >= bytes.length) return null;
+        out.push((bytes[byteIndex] >> bitOffset) & 3);
+      }
+      return out;
+    } catch(e){ return null; }
+  }
+
+  function parseSharedPath(){
+    var segs = window.location.pathname.split('/').filter(function(s){ return s.length > 0; });
+    var last = segs[segs.length - 1];
+    if (!last || last === 'index.html') return null;
+    var dot = last.indexOf('.');
+    if (dot === -1){
+      // 이전에 배포됐던 슬러그 전용 링크(정확한 코드가 없는 링크)를 위한 하위호환
+      return SLUG_TO_PAIR.hasOwnProperty(last) ? scoresForPair(SLUG_TO_PAIR[last]) : null;
+    }
+    return decodeScores(last.slice(dot + 1));
   }
 
   function josaWaGwa(word){
@@ -572,6 +613,7 @@
   }
 
   function computeAndRender(scoresArr){
+    currentScoresArr = scoresArr;
     AXES.forEach(function(a){ scores[a.key] = 0; });
     QUESTIONS.forEach(function(q, i){
       scores[q.axis] += scoresArr[i];
@@ -632,6 +674,7 @@
   document.getElementById('btn-start').addEventListener('click', startQuiz);
   document.getElementById('btn-retry').addEventListener('click', function(){
     currentTypeSlug = null;
+    currentScoresArr = null;
     try{ window.history.replaceState(null, '', getBasePath()); }catch(e){}
     startQuiz();
   });
@@ -645,19 +688,20 @@
 
   function shareUrl(){
     try{
-      return window.location.origin + getBasePath() + (currentTypeSlug || '');
+      var slugPart = currentTypeSlug || 'result';
+      var codePart = currentScoresArr ? encodeScores(currentScoresArr) : '';
+      return window.location.origin + getBasePath() + slugPart + (codePart ? ('.' + codePart) : '');
     } catch(e){ return window.location.href; }
   }
 
-  // 공유 링크(.../possessive 같은 짧은 경로)로 들어온 경우, 퀴즈를 건너뛰고
-  // 그 유형의 대표 결과 화면을 바로 보여준다
+  // 공유 링크(.../possessive.SPWBQQ)로 들어온 경우, 퀴즈를 건너뛰고
+  // 정확히 같은 답변으로 계산된 결과 화면을 바로 보여준다
   (function initFromUrl(){
     try{
-      var slug = getSlugFromPath();
-      var pairKey = slug && SLUG_TO_PAIR[slug];
-      if (!pairKey) return;
+      var scoresArr = parseSharedPath();
+      if (!scoresArr) return;
       elIntro.hidden = true;
-      computeAndRender(scoresForPair(pairKey));
+      computeAndRender(scoresArr);
     } catch(e){}
   })();
 
