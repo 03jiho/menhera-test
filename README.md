@@ -2,7 +2,9 @@
 
 연애할 때 감정이 어디까지 흔들리는지, 16개의 장면으로 가늠해보는 인터랙티브 심리 테스트입니다.
 
-🔗 **플레이하기**: https://03jiho.github.io/menhera-test/
+🔗 **플레이하기**
+- Vercel: https://menhera-test-smoky.vercel.app
+- GitHub Pages: https://03jiho.github.io/menhera-test/
 
 ## 기능
 
